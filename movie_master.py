@@ -8,7 +8,8 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-API_KEY = 'e78b1ee71e70e303478ef6ba5e29e2e9'
+API_KEY = 'e78b1ee71e70e303478ef6ba5e29e2e9'  # TMDb API Key
+OMDB_API_KEY = '8ad270f7'  # OMDb API Key
 BASE_URL = 'https://api.themoviedb.org/3/'
 
 nltk.download('stopwords')
@@ -70,23 +71,42 @@ def surprise_me():
     results = response.json()
     return results['results'][0] if 'results' in results else None
 
-def fetch_placeholder_parents_guide():
-    return "Parent's guide information is not available."
+def fetch_movie_details_from_omdb(title):
+    url = f"http://www.omdbapi.com/"
+    params = {
+        't': title,
+        'apikey': OMDB_API_KEY
+    }
+    response = requests.get(url, params=params)
+    return response.json()
 
 def display_movie(movie):
-    st.write(f"Title: {movie['title']}")
-    st.write(f"Overview: {movie['overview']}")
-    # Placeholder for the parent's guide
-    parents_guide = fetch_placeholder_parents_guide()
-    st.write(f"Parents Guide: {parents_guide}")
+    st.write(f"**Title**: {movie['title']}")
+    st.write(f"**Overview**: {movie['overview']}")
+    
+    # Fetch parental guide info from OMDb
+    omdb_data = fetch_movie_details_from_omdb(movie['title'])
+    parental_guide = omdb_data.get('Rated', 'Not Available')
+
+    st.write(f"**Parental Guide**: {parental_guide}")
+
+    poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+    st.image(poster_url, use_column_width=True)
+    st.write("---")
 
 def main():
-    st.title("Movie Suggestion App")
+    st.title("🎬 Movie Suggestion App 🎬")
 
-    options = ['Select an option', 'Genre', 'Similar Story', 'Surprise Me', 'Current Top IMDb']
-    selected_option = st.selectbox("Choose an option", options)
+    st.sidebar.title("Options")
+    options = {
+        'Genre': '🎭 Choose a Genre',
+        'Similar Story': '🔍 Find Similar Stories',
+        'Surprise Me': '🎲 Surprise Me!',
+        'Current Top IMDb': '⭐ Current Top IMDb Movies'
+    }
+    selected_option = st.sidebar.radio("Select an option", list(options.values()))
 
-    if selected_option == 'Genre':
+    if selected_option == options['Genre']:
         genre_options = [
             'Select an option', 'Action', 'Adventure', 'Animation', 'Comedy',
             'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy', 'History',
@@ -128,7 +148,7 @@ def main():
                     for movie in results['results']:
                         display_movie(movie)
 
-    elif selected_option == 'Similar Story':
+    elif selected_option == options['Similar Story']:
         user_query = st.text_input("Enter keywords to describe the movie you have in mind:")
         if st.button("Submit"):
             movies = fetch_movies('discover/movie', {'api_key': API_KEY})
@@ -139,15 +159,15 @@ def main():
             for _, movie in results.iterrows():
                 display_movie(movie)
 
-    elif selected_option == 'Surprise Me':
-        if st.button("Submit"):
+    elif selected_option == options['Surprise Me']:
+        if st.button("Get Surprise"):
             movie = surprise_me()
             if movie:
                 st.header("Random Movie Suggestion:")
                 display_movie(movie)
 
-    elif selected_option == 'Current Top IMDb':
-        if st.button("Submit"):
+    elif selected_option == options['Current Top IMDb']:
+        if st.button("Show Top IMDb"):
             top_movies = fetch_top_movies()
 
             st.header("Current Top IMDb Movies:")
