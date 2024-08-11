@@ -139,25 +139,47 @@ def main():
             }
 
             genre_id = genre_ids[selected_genre]
+            movies = search_movies_by_genre(genre_id)
+            if 'results' in movies:
+                df = preprocess_data(movies['results'])
+                num_results = 3  # Number of movies to show initially
+                if 'page' not in st.session_state:
+                    st.session_state.page = 0
 
-            if st.button("Submit"):
-                results = search_movies_by_genre(genre_id)
+                start_idx = st.session_state.page * num_results
+                end_idx = start_idx + num_results
+                movie_subset = df.iloc[start_idx:end_idx]
 
-                if 'results' in results:
-                    st.header("Movie Suggestions:")
-                    for movie in results['results']:
-                        display_movie(movie)
+                st.header("Movie Suggestions:")
+                for _, movie in movie_subset.iterrows():
+                    display_movie(movie)
+
+                if end_idx < len(df):
+                    if st.button("Show More"):
+                        st.session_state.page += 1
+                        st.experimental_rerun()
 
     elif selected_option == options['Similar Story']:
         user_query = st.text_input("Enter keywords to describe the movie you have in mind:")
         if st.button("Submit"):
             movies = fetch_movies('discover/movie', {'api_key': API_KEY})
             df = preprocess_data(movies)
-            results = similar_story(user_query, df)
+            num_results = 3  # Number of movies to show initially
+            if 'page' not in st.session_state:
+                st.session_state.page = 0
+
+            start_idx = st.session_state.page * num_results
+            end_idx = start_idx + num_results
+            movie_subset = similar_story(user_query, df, num_results=100).iloc[start_idx:end_idx]
 
             st.header("Movie Suggestions:")
-            for _, movie in results.iterrows():
+            for _, movie in movie_subset.iterrows():
                 display_movie(movie)
+
+            if end_idx < len(df):
+                if st.button("Show More"):
+                    st.session_state.page += 1
+                    st.experimental_rerun()
 
     elif selected_option == options['Surprise Me']:
         if st.button("Get Surprise"):
@@ -169,10 +191,23 @@ def main():
     elif selected_option == options['Current Top IMDb']:
         if st.button("Show Top IMDb"):
             top_movies = fetch_top_movies()
+            num_results = 3  # Number of movies to show initially
+            if 'page' not in st.session_state:
+                st.session_state.page = 0
+
+            start_idx = st.session_state.page * num_results
+            end_idx = start_idx + num_results
+            movie_subset = top_movies[start_idx:end_idx]
 
             st.header("Current Top IMDb Movies:")
-            for movie in top_movies:
+            for movie in movie_subset:
                 display_movie(movie)
+
+            if end_idx < len(top_movies):
+                if st.button("Show More"):
+                    st.session_state.page += 1
+                    st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
+
