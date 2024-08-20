@@ -86,7 +86,7 @@ def display_movie(movie):
     with col1:
         if movie.get('poster_path'):
             poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
-            st.image(poster_url, use_column_width=True, caption="Poster")
+            st.image(poster_url, use_column_width=True, caption="")
     
     with col2:
         st.write(f"**Title**: {movie['title']}")
