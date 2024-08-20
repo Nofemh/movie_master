@@ -81,17 +81,23 @@ def fetch_movie_details_from_omdb(title):
     return response.json()
 
 def display_movie(movie):
-    st.write(f"**Title**: {movie['title']}")
-    st.write(f"**Overview**: {movie['overview']}")
+    col1, col2 = st.columns([1, 4])  # Adjust column ratios as needed
     
-    # Fetch parental guide info from OMDb
-    omdb_data = fetch_movie_details_from_omdb(movie['title'])
-    parental_guide = omdb_data.get('Rated', 'Not Available')
+    with col1:
+        if movie.get('poster_path'):
+            poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+            st.image(poster_url, use_column_width=True, caption="Poster")
+    
+    with col2:
+        st.write(f"**Title**: {movie['title']}")
+        st.write(f"**Overview**: {movie['overview']}")
+        
+        # Fetch parental guide info from OMDb
+        omdb_data = fetch_movie_details_from_omdb(movie['title'])
+        parental_guide = omdb_data.get('Rated', 'Not Available')
 
-    st.write(f"**Parental Guide**: {parental_guide}")
-
-    poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
-    st.image(poster_url, use_column_width=True)
+        st.write(f"**Parental Guide**: {parental_guide}")
+    
     st.write("---")
 
 def main():
@@ -104,6 +110,7 @@ def main():
         'Surprise Me': '🎲 Surprise Me!',
         'Current Top IMDb': '⭐ Current Top IMDb Movies'
     }
+
     selected_option = st.sidebar.radio("Select an option", list(options.values()))
 
     if selected_option == options['Genre']:
@@ -139,47 +146,25 @@ def main():
             }
 
             genre_id = genre_ids[selected_genre]
-            movies = search_movies_by_genre(genre_id)
-            if 'results' in movies:
-                df = preprocess_data(movies['results'])
-                num_results = 3  # Number of movies to show initially
-                if 'page' not in st.session_state:
-                    st.session_state.page = 0
 
-                start_idx = st.session_state.page * num_results
-                end_idx = start_idx + num_results
-                movie_subset = df.iloc[start_idx:end_idx]
+            if st.button("Submit"):
+                results = search_movies_by_genre(genre_id)
 
-                st.header("Movie Suggestions:")
-                for _, movie in movie_subset.iterrows():
-                    display_movie(movie)
-
-                if end_idx < len(df):
-                    if st.button("Show More"):
-                        st.session_state.page += 1
-                        st.experimental_rerun()
+                if 'results' in results:
+                    st.header("Movie Suggestions:")
+                    for movie in results['results']:
+                        display_movie(movie)
 
     elif selected_option == options['Similar Story']:
         user_query = st.text_input("Enter keywords to describe the movie you have in mind:")
         if st.button("Submit"):
             movies = fetch_movies('discover/movie', {'api_key': API_KEY})
             df = preprocess_data(movies)
-            num_results = 3  # Number of movies to show initially
-            if 'page' not in st.session_state:
-                st.session_state.page = 0
-
-            start_idx = st.session_state.page * num_results
-            end_idx = start_idx + num_results
-            movie_subset = similar_story(user_query, df, num_results=100).iloc[start_idx:end_idx]
+            results = similar_story(user_query, df)
 
             st.header("Movie Suggestions:")
-            for _, movie in movie_subset.iterrows():
+            for _, movie in results.iterrows():
                 display_movie(movie)
-
-            if end_idx < len(df):
-                if st.button("Show More"):
-                    st.session_state.page += 1
-                    st.experimental_rerun()
 
     elif selected_option == options['Surprise Me']:
         if st.button("Get Surprise"):
@@ -191,23 +176,12 @@ def main():
     elif selected_option == options['Current Top IMDb']:
         if st.button("Show Top IMDb"):
             top_movies = fetch_top_movies()
-            num_results = 3  # Number of movies to show initially
-            if 'page' not in st.session_state:
-                st.session_state.page = 0
-
-            start_idx = st.session_state.page * num_results
-            end_idx = start_idx + num_results
-            movie_subset = top_movies[start_idx:end_idx]
 
             st.header("Current Top IMDb Movies:")
-            for movie in movie_subset:
+            for movie in top_movies:
                 display_movie(movie)
-
-            if end_idx < len(top_movies):
-                if st.button("Show More"):
-                    st.session_state.page += 1
-                    st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
+
 
